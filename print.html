@@ -1,0 +1,182 @@
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Invoice PDF</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./print.css" />
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div class="brand">
+        <div class="logo" id="logoBox"><img id="logo" alt="Logo" /></div>
+        <div>
+          <div class="label">From</div>
+          <div class="value" id="from"></div>
+        </div>
+      </div>
+      <div class="title">
+        <h1>INVOICE</h1>
+        <div class="value"><span class="label" style="display:block">Invoice #</span><span id="invoiceNo"></span></div>
+        <div class="value" id="brandName" style="margin-top:4px"></div>
+      </div>
+    </div>
+
+    <div class="meta">
+      <div class="block">
+        <div class="label">Bill To</div>
+        <div class="value" id="billTo"></div>
+        <div class="value" id="billToAddr"></div>
+      </div>
+      <div class="block" id="shipBlock">
+        <div class="label">Ship To</div>
+        <div class="value" id="shipTo"></div>
+        <div class="value" id="shipToAddr"></div>
+      </div>
+      <div class="block">
+        <div class="label">Dates / PO</div>
+        <div class="value"><strong>Date:</strong> <span id="date"></span></div>
+        <div class="value"><strong>Due:</strong> <span id="dueDate"></span></div>
+        <div class="value"><strong>Terms:</strong> <span id="paymentTerms"></span></div>
+        <div class="value"><strong>PO:</strong> <span id="poNumber"></span></div>
+      </div>
+    </div>
+
+    <table class="table" id="items">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th style="width:80px" class="num">Qty</th>
+          <th style="width:110px" class="num">Rate</th>
+          <th style="width:90px" class="num">Tax%</th>
+          <th style="width:110px" class="num">Discount</th>
+          <th style="width:120px" class="num">Amount</th>
+        </tr>
+      </thead>
+      <tbody id="itemRows"></tbody>
+    </table>
+
+    <div class="bottom">
+      <div class="notes">
+        <h3>Notes</h3>
+        <p id="notes"></p>
+      </div>
+      <div class="totals">
+        <div class="row"><div>Subtotal</div><div id="subtotal"></div></div>
+        <div class="row muted"><div>Item-level tax</div><div id="itemTaxTotal"></div></div>
+        <div class="row muted"><div>Item-level discount</div><div id="itemDiscountTotal"></div></div>
+        <div class="row"><div>Invoice Tax (<span id="taxPct"></span>%)</div><div id="taxAmt"></div></div>
+        <div class="row"><div>Discount</div><div id="discountAmt"></div></div>
+        <div class="row"><div>Shipping</div><div id="shippingAmt"></div></div>
+        <div class="divider"></div>
+        <div class="row grand"><div>Total</div><div id="total"></div></div>
+        <div class="row"><div>Amount Paid</div><div id="amountPaid"></div></div>
+        <div class="row grand"><div>Balance Due</div><div id="balanceDue"></div></div>
+        <div id="convertedWrap" class="row muted" style="display:none"><div>Total (Converted)</div><div id="totalConverted"></div></div>
+      </div>
+    </div>
+
+    <div class="terms" style="margin-top:12px">
+      <h3>Terms</h3>
+      <p id="terms"></p>
+    </div>
+
+    <div class="footer">
+      <div>Thank you for your business.</div>
+      <div id="footerBrand"></div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  try {
+    const params = new URLSearchParams(location.search);
+    const state = JSON.parse(decodeURIComponent(params.get('state') || '{}'));
+    window.__readyForPDF = false;
+
+    const prefs = state.prefs || { currency:{code:'USD', locale:'en-US', symbol:'$'}, dual:{enabled:false, currency:{code:'USD', locale:'en-US', symbol:'$'}, rate:1} };
+    const cur = prefs.currency || {code:'USD',locale:'en-US',symbol:'$'};
+    const fmt = (n, c=cur) => {
+      try { return new Intl.NumberFormat(c.locale, { style:'currency', currency: c.code }).format(n||0); }
+      catch(e){ return (c.symbol||'$')+(n||0).toFixed(2); }
+    };
+
+    const q = sel => document.getElementById(sel);
+    q('invoiceNo').textContent = state.invoiceNumber || '';
+    q('brandName').textContent = (state.brand && state.brand.name) || '';
+    q('footerBrand').textContent = (state.brand && state.brand.name) || '';
+    q('from').textContent = state.from || '';
+    q('billTo').textContent = state.billTo || '';
+    q('billToAddr').textContent = state.billToAddr || '';
+    q('shipTo').textContent = state.shipTo || '';
+    q('shipToAddr').textContent = state.shipToAddr || '';
+    if(!(state.shipTo||state.shipToAddr)){ document.getElementById('shipBlock').style.display='none'; }
+    q('date').textContent = state.date || '';
+    q('dueDate').textContent = state.dueDate || '';
+    q('paymentTerms').textContent = state.paymentTerms || '';
+    q('poNumber').textContent = state.poNumber || '';
+    q('notes').textContent = state.notes || '';
+    q('terms').textContent = state.terms || '';
+
+    if(state.logoDataUrl){ q('logo').src = state.logoDataUrl; } else { document.getElementById('logoBox').style.borderColor='transparent'; }
+
+    const rows = state.rows || [];
+    let subtotal=0, itemTax=0, itemDisc=0;
+    const tbody = document.getElementById('itemRows');
+    rows.forEach(r=>{
+      const qty = parseFloat(r.qty||0);
+      const rate = parseFloat(r.rate||0);
+      const base = qty*rate;
+      const pct = parseFloat(r.itemTaxPct||0);
+      const disc = parseFloat(r.itemDiscountAmt||0);
+      const amt = base + base*pct/100 - disc;
+      subtotal += base; itemTax += base*(pct/100); itemDisc += disc;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${(r.description||'').replace(/</g,'&lt;')}</td>
+        <td class="num">${qty}</td>
+        <td class="num">${fmt(rate)}</td>
+        <td class="num">${pct||0}</td>
+        <td class="num">${fmt(disc)}</td>
+        <td class="num">${fmt(amt)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    const taxPct = parseFloat(state.taxPct||0);
+    const taxAmt = subtotal * (taxPct/100);
+    const discount = parseFloat(state.discount||0);
+    const shipping = parseFloat(state.shipping||0);
+    const total = subtotal + itemTax + taxAmt + shipping - discount - itemDisc;
+    const paid = parseFloat(state.amountPaid||0);
+    const balance = Math.max(total - paid, 0);
+
+    q('subtotal').textContent = fmt(subtotal);
+    q('itemTaxTotal').textContent = fmt(itemTax);
+    q('itemDiscountTotal').textContent = fmt(itemDisc);
+    q('taxPct').textContent = (taxPct||0).toString();
+    q('taxAmt').textContent = fmt(taxAmt);
+    q('discountAmt').textContent = fmt(discount);
+    q('shippingAmt').textContent = fmt(shipping);
+    q('total').textContent = fmt(total);
+    q('amountPaid').textContent = fmt(paid);
+    q('balanceDue').textContent = fmt(balance);
+
+    if(prefs.dual && prefs.dual.enabled){
+      const rate = parseFloat(prefs.dual.rate||1);
+      q('convertedWrap').style.display='flex';
+      q('totalConverted').textContent = fmt(total*rate, prefs.dual.currency);
+    }
+
+    window.__readyForPDF = true;
+  } catch (error) {
+    console.error('Error in print.html script:', error);
+    window.__readyForPDF = true; // set to true to avoid hanging
+  }
+})();
+</script>
+</body>
+</html>

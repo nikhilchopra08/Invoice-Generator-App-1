@@ -1,0 +1,38 @@
+
+@page { size: A4; margin: 18mm; }
+* { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+:root{
+  --ink:#0f172a;
+  --muted:#6b7280;
+  --line:#e5e7eb;
+  --primary:#111827;
+}
+html,body{ font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:var(--ink); }
+.wrapper{ width: 100%; }
+.header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; }
+.brand{ display:flex; gap:16px; align-items:center; }
+.brand .logo{ width:160px; height:80px; border:1px solid var(--line); border-radius:8px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.brand .logo img{ max-width:100%; max-height:100%; object-fit:contain; }
+.title{ text-align:right; }
+.title h1{ font-size:32px; letter-spacing:.04em; margin:0; }
+.meta{ display:flex; justify-content:space-between; gap:24px; margin:18px 0 12px; }
+.meta .block{ flex:1; }
+.label{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }
+.value{ font-size:13px; white-space:pre-line; }
+
+.table{ width:100%; border-collapse:collapse; margin-top:10px; }
+.table th{ background:var(--primary); color:#fff; font-weight:600; text-align:left; font-size:12px; padding:10px 12px; }
+.table td{ font-size:13px; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+.table .num{ text-align:right; white-space:nowrap; }
+
+.bottom{ display:flex; gap:24px; margin-top:18px; }
+.notes, .terms{ flex: 1 1 50%; border:1px solid var(--line); border-radius:8px; padding:12px; }
+.notes h3, .terms h3{ margin:0 0 6px; font-size:13px; }
+.notes p, .terms p{ margin:0; font-size:12px; white-space:pre-wrap; }
+
+.totals{ margin-left:auto; width: 320px; border:1px solid var(--line); border-radius:8px; padding:12px; }
+.totals .row{ display:flex; justify-content:space-between; padding:6px 0; font-size:13px; }
+.totals .row.muted{ color:var(--muted); font-size:12px; }
+.totals .divider{ border-top:1px solid var(--line); margin:8px 0; }
+.totals .grand{ font-weight:700; font-size:16px; }
+.footer{ margin-top:24px; font-size:11px; color:var(--muted); display:flex; justify-content:space-between; }

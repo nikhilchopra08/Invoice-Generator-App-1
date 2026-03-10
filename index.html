@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Invoice Generator Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        --ink: #0f172a;
+        --accent: #111827;
+      }
+      body {
+        background: #f1f5f9;
+        color: var(--ink);
+      }
+      .invoice {
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      .card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+      }
+      .grid-head {
+        background: #0f172a;
+        color: #fff;
+      }
+      .logo {
+        width: 160px;
+        height: 80px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .logo img {
+        max-height: 80px;
+        max-width: 100%;
+        object-fit: contain;
+      }
+      .btn {
+        padding: 0.55rem 0.9rem;
+        border-radius: 0.6rem;
+      }
+      .btn-primary {
+        background: var(--accent);
+        color: #fff;
+      }
+      @media print {
+        @page {
+          size: A4;
+          margin: 18mm;
+        }
+        .no-print {
+          display: none !important;
+        }
+        body {
+          background: #fff;
+        }
+        .card {
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="invoice p-6">
+      <div class="flex items-start justify-between gap-6 mb-6">
+        <div class="flex items-center gap-3">
+          <div class="logo">
+            <img id="logoPreview" class="hidden" alt="logo" />
+            <label class="text-sm text-slate-600 cursor-pointer"
+              >+ Add Your Logo
+              <input
+                id="logoInput"
+                type="file"
+                accept="image/*"
+                class="hidden"
+              />
+            </label>
+          </div>
+          <div class="no-print flex flex-wrap gap-2">
+            <button
+              id="saveAsTemplate"
+              class="px-3 py-2 text-sm rounded-lg border shadow bg-white"
+            >
+              Save Template
+            </button>
+            <button
+              id="loadTemplate"
+              class="px-3 py-2 text-sm rounded-lg border shadow bg-white"
+            >
+              Load
+            </button>
+            <button
+              id="exportJson"
+              class="px-3 py-2 text-sm rounded-lg border shadow bg-white"
+            >
+              Export JSON
+            </button>
+            <label
+              class="px-3 py-2 text-sm rounded-lg border shadow bg-white cursor-pointer"
+              >Import JSON
+              <input
+                id="importJson"
+                type="file"
+                accept="application/json"
+                class="hidden"
+              />
+            </label>
+          </div>
+        </div>
+        <div class="text-right">
+          <h1 class="text-4xl font-semibold tracking-wide">INVOICE</h1>
+          <div class="mt-3 flex items-center justify-end gap-2">
+            <div>
+              <label class="block text-xs text-slate-500">Brand</label>
+              <div class="flex gap-2">
+                <select id="brandSelect" class="border rounded px-2 py-1 w-44">
+                  <option>Default</option>
+                </select>
+                <button id="manageBrand" class="px-2 py-1 rounded border">
+                  Manage
+                </button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-500">#</label>
+              <div class="flex gap-2 items-center">
+                <input
+                  id="invoiceNumber"
+                  class="border rounded px-2 py-1 w-44"
+                  value="1"
+                />
+                <button id="genNumber" class="px-2 py-1 rounded border">
+                  Next #
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="no-print flex flex-wrap items-center justify-between gap-3 mb-4"
+      >
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <span class="text-sm">Theme</span>
+            <select id="themeSelect" class="border rounded px-2 py-1">
+              <option value="classic">Classic</option>
+              <option value="minimal">Minimal</option>
+              <option value="bold">Bold</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm">Currency</span>
+            <select id="currencySelect" class="border rounded px-2 py-1">
+              <option value="USD|en-US|$">USD ($)</option>
+              <option value="INR|en-IN|₹">INR (₹)</option>
+              <option value="EUR|de-DE|€">EUR (€)</option>
+              <option value="GBP|en-GB|£">GBP (£)</option>
+              <option value="JPY|ja-JP|¥">JPY (¥)</option>
+            </select>
+          </div>
+          <label class="text-sm flex items-center gap-2"
+            ><input id="dualCurrency" type="checkbox" /> Show converted
+            total</label
+          >
+          <select id="convCurrency" class="border rounded px-2 py-1 hidden">
+            <option value="USD|en-US|$">USD ($)</option>
+            <option value="INR|en-IN|₹">INR (₹)</option>
+            <option value="EUR|de-DE|€">EUR (€)</option>
+            <option value="GBP|en-GB|£">GBP (£)</option>
+            <option value="JPY|ja-JP|¥">JPY (¥)</option>
+          </select>
+          <input
+            id="fxRate"
+            type="number"
+            step="0.0001"
+            class="border rounded px-2 py-1 w-28 hidden"
+            placeholder="FX rate"
+          />
+        </div>
+        <div class="flex items-center gap-3">
+          <button
+            id="saveDefaults"
+            class="px-3 py-2 text-sm rounded-lg border shadow bg-white"
+          >
+            Save Default
+          </button>
+          <label class="text-sm flex items-center gap-2"
+            ><input id="autoIncrement" type="checkbox" /> Auto-increment on
+            PDF</label
+          >
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="card p-4">
+          <label class="text-xs text-slate-500 block">Who is this from?</label
+          ><input
+            id="from"
+            class="w-full border rounded p-2"
+            placeholder="Your company name, address, etc."
+          />
+        </div>
+        <div></div>
+        <div class="card p-4">
+          <label class="text-xs text-slate-500 block mb-1">Bill To</label
+          ><input
+            id="billTo"
+            class="w-full border rounded p-2"
+            placeholder="Client name"
+          /><input
+            id="billToAddr"
+            class="w-full border rounded p-2 mt-2"
+            placeholder="Client address"
+          />
+        </div>
+        <div class="card p-4">
+          <label class="text-xs text-slate-500 block mb-1"
+            >Ship To (optional)</label
+          ><input
+            id="shipTo"
+            class="w-full border rounded p-2"
+            placeholder="Recipient / Department"
+          /><input
+            id="shipToAddr"
+            class="w-full border rounded p-2 mt-2"
+            placeholder="Shipping address"
+          />
+        </div>
+        <div class="card p-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-slate-500 block">Date</label
+              ><input id="date" type="date" class="w-full border rounded p-2" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-500 block">Payment Terms</label
+              ><input
+                id="paymentTerms"
+                class="w-full border rounded p-2"
+                placeholder="e.g., Net 15"
+              />
+            </div>
+            <div>
+              <label class="text-xs text-slate-500 block">Due Date</label
+              ><input
+                id="dueDate"
+                type="date"
+                class="w-full border rounded p-2"
+              />
+            </div>
+            <div>
+              <label class="text-xs text-slate-500 block">PO Number</label
+              ><input id="poNumber" class="w-full border rounded p-2" />
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+
+      <div class="card mt-6 overflow-hidden">
+        <div class="grid-head px-4 py-2 grid grid-cols-12 items-center">
+          <div class="col-span-5">Item</div>
+          <div class="col-span-2 text-right">Quantity</div>
+          <div class="col-span-2 text-right">Rate</div>
+          <div class="col-span-2 text-right">Amount</div>
+          <div class="col-span-1 text-right">More</div>
+        </div>
+        <div id="items"></div>
+        <div class="p-4">
+          <button id="addItem" class="no-print btn btn-primary text-sm">
+            + Line Item
+          </button>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6 mt-6">
+        <div class="card p-4">
+          <label class="text-xs text-slate-500 block mb-1">Notes</label
+          ><textarea
+            id="notes"
+            class="w-full border rounded p-2"
+            rows="4"
+            placeholder="Any relevant information not already covered"
+          ></textarea>
+        </div>
+        <div class="card p-4">
+          <div class="space-y-3">
+            <div class="flex justify-between">
+              <div>Subtotal</div>
+              <div id="subtotal">$0.00</div>
+            </div>
+            <div class="flex justify-between text-sm text-slate-500">
+              <div>Item-level tax</div>
+              <div id="itemTaxTotal">$0.00</div>
+            </div>
+            <div class="flex justify-between text-sm text-slate-500">
+              <div>Item-level discount</div>
+              <div id="itemDiscountTotal">$0.00</div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span>Invoice Tax</span
+                ><input
+                  id="taxPct"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="w-20 border rounded p-1 text-right"
+                  value="0"
+                /><span>%</span>
+              </div>
+              <div id="taxAmt">$0.00</div>
+            </div>
+            <div class="flex items-center justify-between">
+              <button id="addDiscount" class="no-print text-indigo-600 text-sm">
+                + Discount
+              </button>
+              <div id="discountAmt" data-v="0">$0.00</div>
+            </div>
+            <div class="flex items-center justify-between">
+              <button id="addShipping" class="no-print text-indigo-600 text-sm">
+                + Shipping
+              </button>
+              <div id="shippingAmt" data-v="0">$0.00</div>
+            </div>
+            <hr />
+            <div class="flex justify-between font-semibold text-lg">
+              <div>Total</div>
+              <div id="total">$0.00</div>
+            </div>
+            <div id="convertedWrap" class="hidden text-sm">
+              <div class="flex justify-between">
+                <div>Total (Converted)</div>
+                <div id="totalConverted">$0.00</div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div>Amount Paid</div>
+              <input
+                id="amountPaid"
+                type="number"
+                min="0"
+                step="0.01"
+                class="w-28 border rounded p-1 text-right"
+                value="0"
+              />
+            </div>
+            <div class="flex justify-between">
+              <div>Balance Due</div>
+              <div id="balanceDue">$0.00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-4 mt-6">
+        <label class="text-xs text-slate-500 block mb-1">Terms</label
+        ><textarea
+          id="terms"
+          class="w-full border rounded p-2"
+          rows="4"
+          placeholder="Late fees, payment methods, delivery schedule"
+        ></textarea>
+      </div>
+      <div class="flex items-center justify-end gap-3 mt-6">
+        <div id="licenseDiv" class="hidden flex items-center gap-2">
+          <label class="text-sm">License Key:</label>
+          <input id="licenseInput" class="border rounded px-2 py-1" type="text" placeholder="Enter license key" />
+          <button id="submitLicense" class="btn btn-primary text-sm">Submit</button>
+        </div>
+        <button id="downloadPdf" class="no-print btn btn-primary">
+          Download PDF
+        </button>
+      </div>
+    </div>
+
+    <script>
+      const log = (...a) => console.log("[invoice]", ...a);
+      const $ = (s) => document.querySelector(s);
+      const itemsEl = $("#items");
+
+      // prefs
+      const PREF_KEY = "invoice_prefs_v3";
+      let prefs = JSON.parse(localStorage.getItem(PREF_KEY) || "{}");
+      if (!prefs.currency) {
+        prefs.currency = { code: "USD", locale: "en-US", symbol: "$" };
+      }
+      if (!prefs.theme) {
+        prefs.theme = "classic";
+      }
+      if (!prefs.dual) {
+        prefs.dual = {
+          enabled: false,
+          currency: { code: "USD", locale: "en-US", symbol: "$" },
+          rate: 1,
+        };
+      }
+      if (!prefs.autoIncrement) {
+        prefs.autoIncrement = true;
+      }
+      if (!prefs.logoDataUrl) {
+        prefs.logoDataUrl = '';
+      }
+      const parseCur = (v) => {
+        const [code, locale, symbol] = v.split("|");
+        return { code, locale, symbol };
+      };
+      const fmt = (n, cur = prefs.currency) => {
+        try {
+          return new Intl.NumberFormat(cur.locale, {
+            style: "currency",
+            currency: cur.code,
+          }).format(n || 0);
+        } catch (e) {
+          return (cur.symbol || "$") + (n || 0).toFixed(2);
+        }
+      };
+      const persist = () =>
+        localStorage.setItem(PREF_KEY, JSON.stringify(prefs));
+      const setTheme = (t) => {
+        document.body.classList.remove(
+          "theme-classic",
+          "theme-minimal",
+          "theme-bold"
+        );
+        document.body.classList.add("theme-" + t);
+        $("#themeSelect").value = t;
+      };
+      setTheme(prefs.theme);
+      document.getElementById("autoIncrement").checked = prefs.autoIncrement;
+      setLogo(prefs.logoDataUrl);
+
+      // items
+      function addRow(
+        d = {
+          description: "",
+          qty: 1,
+          rate: 0,
+          itemTaxPct: 0,
+          itemDiscountAmt: 0,
+        }
+      ) {
+        const row = document.createElement("div");
+        row.className = "item-row";
+        row.innerHTML = `
+      <div class="grid grid-cols-12 gap-2 p-3 items-center">
+        <div class="col-span-5"><input class="desc w-full border rounded p-2" placeholder="Description of item/service..." value="${
+          d.description
+        }"/></div>
+        <div class="col-span-2 text-right"><input class="qty w-full border rounded p-2 text-right" type="number" min="0" step="1" value="${
+          d.qty
+        }"/></div>
+        <div class="col-span-2 text-right flex items-center"><span class="mr-1 rateSymbol">${
+          prefs.currency.symbol
+        }</span><input class="rate w-full border rounded p-2 text-right" type="number" min="0" step="0.01" value="${
+          d.rate
+        }"/></div>
+        <div class="col-span-2 text-right font-medium amount">${fmt(0)}</div>
+        <div class="col-span-1 text-right"><button class="no-print text-slate-500 hover:text-slate-800 moreBtn" title="More">⋯</button></div>
+      </div>
+      <div class="more hidden p-3 pt-0 pb-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div><label class="text-xs text-slate-500">Item Tax %</label><input class="itemTaxPct w-full border rounded p-2 text-right" type="number" min="0" step="0.01" value="${
+            d.itemTaxPct || 0
+          }"/></div>
+          <div><label class="text-xs text-slate-500">Item Discount (${
+            prefs.currency.symbol
+          })</label><input class="itemDiscountAmt w-full border rounded p-2 text-right" type="number" min="0" step="0.01" value="${
+          d.itemDiscountAmt || 0
+        }"/></div>
+          <div class="flex items-end"><button class="no-print removeBtn text-red-600 hover:text-red-800">Remove</button></div>
+        </div>
+      </div>`;
+        row
+          .querySelector(".moreBtn")
+          .addEventListener("click", () =>
+            row.querySelector(".more").classList.toggle("hidden")
+          );
+        row.querySelector(".removeBtn").addEventListener("click", () => {
+          row.remove();
+          recalc();
+        });
+        row.addEventListener("input", recalc);
+        itemsEl.appendChild(row);
+        recalc();
+      }
+      const rows = () => [...itemsEl.querySelectorAll(".item-row")];
+      function recalc() {
+        let subtotal = 0,
+          itTax = 0,
+          itDisc = 0;
+        rows().forEach((r) => {
+          const q = parseFloat(r.querySelector(".qty").value || 0);
+          const rt = parseFloat(r.querySelector(".rate").value || 0);
+          const base = q * rt;
+          const pct = parseFloat(r.querySelector(".itemTaxPct").value || 0);
+          const disc = parseFloat(
+            r.querySelector(".itemDiscountAmt").value || 0
+          );
+          r.querySelector(".amount").textContent = fmt(
+            base + (base * pct) / 100 - disc
+          );
+          subtotal += base;
+          itTax += base * (pct / 100);
+          itDisc += disc;
+        });
+        $("#subtotal").textContent = fmt(subtotal);
+        $("#itemTaxTotal").textContent = fmt(itTax);
+        $("#itemDiscountTotal").textContent = fmt(itDisc);
+        const tPct = parseFloat($("#taxPct").value || 0);
+        const invTax = subtotal * (tPct / 100);
+        $("#taxAmt").textContent = fmt(invTax);
+        const disc = parseFloat($("#discountAmt").dataset.v || 0);
+        const ship = parseFloat($("#shippingAmt").dataset.v || 0);
+        const total = subtotal + itTax + invTax + ship - disc - itDisc;
+        $("#total").textContent = fmt(total);
+        const paid = parseFloat($("#amountPaid").value || 0);
+        $("#balanceDue").textContent = fmt(Math.max(total - paid, 0));
+        if (prefs.dual.enabled) {
+          $("#totalConverted").textContent = fmt(
+            total * (parseFloat(prefs.dual.rate) || 1),
+            prefs.dual.currency
+          );
+          $("#convertedWrap").classList.remove("hidden");
+        } else {
+          $("#convertedWrap").classList.add("hidden");
+        }
+      }
+
+      // wiring
+      document
+        .getElementById("addItem")
+        .addEventListener("click", () => addRow());
+      document.getElementById("taxPct").addEventListener("input", recalc);
+      document.getElementById("amountPaid").addEventListener("input", recalc);
+
+      function promptMoney(label, elId) {
+        const el = document.getElementById(elId);
+        const current = el.dataset.v ?? "0";
+        const v = prompt(label, current);
+        if (v === null) return;
+        const n = parseFloat(v);
+        if (Number.isNaN(n)) {
+          alert("Enter a numeric amount");
+          return;
+        }
+        el.dataset.v = String(n);
+        el.textContent = fmt(n);
+        recalc();
+      }
+      document
+        .getElementById("addDiscount")
+        .addEventListener("click", () =>
+          promptMoney("Enter discount amount", "discountAmt")
+        );
+      document
+        .getElementById("addShipping")
+        .addEventListener("click", () =>
+          promptMoney("Enter shipping amount", "shippingAmt")
+        );
+
+      function updateCurrency() {
+        document
+          .querySelectorAll(".rateSymbol")
+          .forEach((e) => (e.textContent = prefs.currency.symbol));
+        recalc();
+      }
+      document
+        .getElementById("currencySelect")
+        .addEventListener("change", (e) => {
+          prefs.currency = parseCur(e.target.value);
+          persist();
+          updateCurrency();
+        });
+      document.getElementById("themeSelect").addEventListener("change", (e) => {
+        prefs.theme = e.target.value;
+        persist();
+        setTheme(prefs.theme);
+      });
+      document.getElementById("saveDefaults").addEventListener("click", () => {
+        persist();
+        alert("Defaults saved");
+      });
+
+      // logo
+      function setLogo(dataUrl) {
+        const img = $("#logoPreview");
+        const label = img.nextElementSibling;
+        if (dataUrl) {
+          img.src = dataUrl;
+          img.classList.remove("hidden");
+          label.classList.add("hidden");
+        } else {
+          img.classList.add("hidden");
+          label.classList.remove("hidden");
+        }
+        prefs.logoDataUrl = dataUrl || '';
+        persist();
+      }
+      document.getElementById("logoInput").addEventListener("change", (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = () => setLogo(r.result);
+        r.readAsDataURL(f);
+      });
+
+      // numbering
+      let prefix = prefs.prefix || "";
+      let pad = prefs.padDigits || 3;
+      let counter = prefs.nextCounter || 1;
+      // initialize invoice number input to current counter value
+      document.getElementById("invoiceNumber").value = (prefix || "") + String(counter).padStart(pad, "0");
+      function nextNumber() {
+        const v = (prefix || "") + String(counter).padStart(pad, "0");
+        document.getElementById("invoiceNumber").value = v;
+        counter += 1;
+        prefs.nextCounter = counter;
+        persist();
+      }
+      document
+        .getElementById("genNumber")
+        .addEventListener("click", nextNumber);
+
+      // templates
+      function collect() {
+        return {
+          rows: rows().map((r) => ({
+            description: r.querySelector(".desc").value,
+            qty: r.querySelector(".qty").value,
+            rate: r.querySelector(".rate").value,
+            itemTaxPct: r.querySelector(".itemTaxPct").value,
+            itemDiscountAmt: r.querySelector(".itemDiscountAmt").value,
+          })),
+          prefs,
+          invoiceNumber: document.getElementById("invoiceNumber").value,
+          discount: document.getElementById("discountAmt").dataset.v || "0",
+          shipping: document.getElementById("shippingAmt").dataset.v || "0",
+        };
+      }
+      function apply(s) {
+        itemsEl.innerHTML = "";
+        (s.rows || []).forEach(addRow);
+        if (s.prefs) {
+          prefs = s.prefs;
+          setTheme(prefs.theme || "classic");
+          document.getElementById(
+            "currencySelect"
+          ).value = `${prefs.currency.code}|${prefs.currency.locale}|${prefs.currency.symbol}`;
+          updateCurrency();
+        }
+        if (s.invoiceNumber)
+          document.getElementById("invoiceNumber").value = s.invoiceNumber;
+        const d = parseFloat(s.discount || 0),
+          sh = parseFloat(s.shipping || 0);
+        document.getElementById("discountAmt").dataset.v = String(
+          isNaN(d) ? 0 : d
+        );
+        document.getElementById("discountAmt").textContent = fmt(
+          isNaN(d) ? 0 : d
+        );
+        document.getElementById("shippingAmt").dataset.v = String(
+          isNaN(sh) ? 0 : sh
+        );
+        document.getElementById("shippingAmt").textContent = fmt(
+          isNaN(sh) ? 0 : sh
+        );
+        recalc();
+      }
+
+      document
+        .getElementById("saveAsTemplate")
+        .addEventListener("click", () => {
+          const name = prompt("Template name");
+          if (!name) return;
+          localStorage.setItem("tpl_" + name, JSON.stringify(collect()));
+          alert("Saved template: " + name);
+        });
+
+      document.getElementById("loadTemplate").addEventListener("click", () => {
+        const names = Object.keys(localStorage)
+          .filter((k) => k.startsWith("tpl_"))
+          .map((k) => k.replace("tpl_", ""));
+        if (!names.length) {
+          alert("No templates saved yet.");
+          return;
+        }
+        const name = prompt(
+          "Enter template name to load:\n" + names.join(", ")
+        );
+        if (!name) return;
+        const raw = localStorage.getItem("tpl_" + name);
+        if (!raw) {
+          alert("Not found");
+          return;
+        }
+        try {
+          apply(JSON.parse(raw));
+        } catch (e) {
+          alert("Invalid template");
+        }
+      });
+
+      // start
+      addRow();
+      updateCurrency();
+
+      // PDF download with fallback
+      function collectForPrint(){
+        const s = collect();
+        s.from = document.getElementById('from').value;
+        s.billTo = document.getElementById('billTo').value;
+        s.billToAddr = document.getElementById('billToAddr').value;
+        s.shipTo = document.getElementById('shipTo').value;
+        s.shipToAddr = document.getElementById('shipToAddr').value;
+        s.date = document.getElementById('date').value;
+        s.paymentTerms = document.getElementById('paymentTerms').value;
+        s.dueDate = document.getElementById('dueDate').value;
+        s.poNumber = document.getElementById('poNumber').value;
+        s.taxPct = document.getElementById('taxPct').value;
+        s.amountPaid = document.getElementById('amountPaid').value;
+        s.notes = document.getElementById('notes').value;
+        s.terms = document.getElementById('terms').value;
+        s.invoiceNumber = document.getElementById('invoiceNumber').value;
+        s.discount = document.getElementById('discountAmt').dataset.v || 0;
+        s.shipping = document.getElementById('shippingAmt').dataset.v || 0;
+        s.logoDataUrl = document.getElementById('logoPreview').src || '';
+        // optionally selected brand details
+        s.brand = { name: document.getElementById('brandSelect')?.selectedOptions?.[0]?.text || 'Default' };
+        return JSON.stringify(s);
+      }
+
+      document.getElementById('downloadPdf').addEventListener('click', async () => {
+        alert('Download clicked'); // Debug
+        if (!window.electronAPI) {
+          alert('electronAPI not available');
+          return;
+        }
+        try {
+          // Check license
+          const license = await window.electronAPI.getLicense();
+          alert('License: ' + license); // Debug
+          if (!license) {
+            document.getElementById('licenseDiv').classList.remove('hidden');
+            return;
+          }
+          // increment before printing so the updated number appears on PDF
+          if (prefs.autoIncrement) { nextNumber(); }
+          const stateJson = collectForPrint();
+          await window.electronAPI.printToPDF(stateJson);
+          // PDF is saved via dialog, no need for manual download
+        } catch (error) {
+          alert('Error: ' + error.message);
+        }
+      });
+
+      document.getElementById('submitLicense').addEventListener('click', async () => {
+        const key = document.getElementById('licenseInput').value.trim();
+        if (key) {
+          await window.electronAPI.setLicense(key);
+          document.getElementById('licenseDiv').classList.add('hidden');
+          document.getElementById('licenseInput').value = '';
+          alert('License set successfully!');
+        } else {
+          alert('Please enter a valid license key.');
+        }
+      });
+    </script>
+  </body>
+</html>
